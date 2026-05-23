@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>퀴즈 마스터</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d0f14;--sur:#161921;--sur2:#1e2230;--bdr:#2a2f3d;--txt:#e8eaf0;--mut:#6b7280;--ac:#4f8ef7;--ac2:#7c5cf6;--ok:#22c55e;--err:#ef4444;--r:14px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;display:flex;flex-direction:column;align-items:center}
+.btn{padding:10px 22px;border:none;border-radius:8px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-size:14px;font-weight:500;transition:all .2s}
+.btn-p{background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff}.btn-p:hover{filter:brightness(1.12);transform:translateY(-1px)}
+.btn-s{background:var(--sur2);color:var(--txt);border:1px solid var(--bdr)}.btn-s:hover{background:var(--bdr)}
+.btn-d{background:#7f1d1d;color:#fca5a5;border:none}.btn-d:hover{background:#991b1b}
+#app{width:100%;max-width:780px;padding:30px 20px 80px}
+.app-title{font-size:22px;font-weight:900;letter-spacing:-.5px;background:linear-gradient(120deg,var(--ac),var(--ac2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.app-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:36px}
+.screen{display:none;animation:fi .3s ease}.screen.active{display:block}
+@keyframes fi{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+/* 홈 */
+.home-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:30px}
+.stat-card{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);padding:18px;text-align:center}
+.stat-card .num{font-size:32px;font-weight:900;font-family:'Space Mono',monospace}
+.stat-card .lbl{font-size:12px;color:var(--mut);margin-top:4px}
+.ok-num{color:var(--ok)}.err-num{color:var(--err)}.pend-num{color:var(--mut)}
+.sec{font-size:13px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:1px;margin:28px 0 12px}
+.cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.cat-card{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);padding:18px 16px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.cat-card::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .2s;background:linear-gradient(135deg,rgba(79,142,247,.15),rgba(124,92,246,.15))}
+.cat-card:hover::before{opacity:1}.cat-card:hover{border-color:var(--ac);transform:translateY(-2px)}
+.cat-card.all{border-color:var(--ac2);background:linear-gradient(135deg,rgba(79,142,247,.08),rgba(124,92,246,.08))}
+.cat-card .cn{font-weight:700;font-size:15px;margin-bottom:6px}.cat-card .cc{font-size:12px;color:var(--mut)}
+.dots{display:flex;gap:4px;margin-top:10px;flex-wrap:wrap}
+.dot{width:8px;height:8px;border-radius:50%}.dot.c{background:var(--ok)}.dot.w{background:var(--err)}.dot.p{background:var(--mut)}
+/* 관리 */
+.toolbar{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;align-items:center}
+.toolbar input{flex:1;min-width:140px;padding:9px 14px;background:var(--sur);border:1px solid var(--bdr);border-radius:8px;color:var(--txt);font-size:14px;font-family:'Noto Sans KR',sans-serif}
+.toolbar input:focus{outline:none;border-color:var(--ac)}
+.q-item{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);padding:16px;margin-bottom:10px;display:flex;align-items:flex-start;gap:14px}
+.q-icon{font-size:22px;flex-shrink:0;margin-top:2px}.q-body{flex:1;min-width:0}
+.q-q{font-weight:500;margin-bottom:4px;word-break:break-word}.q-a{font-size:13px;color:var(--mut)}
+.q-cat{font-size:11px;background:var(--sur2);border-radius:4px;padding:2px 7px;display:inline-block;margin-top:5px;color:var(--mut)}
+.q-img{width:60px;height:60px;object-fit:cover;border-radius:8px;border:1px solid var(--bdr);flex-shrink:0;cursor:pointer}
+.q-acts{display:flex;gap:6px;flex-shrink:0}
+/* 모달 */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.76);z-index:100;align-items:center;justify-content:center;padding:20px}
+.overlay.open{display:flex}
+.modal{background:var(--sur);border:1px solid var(--bdr);border-radius:18px;padding:28px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto}
+.modal h3{font-size:18px;font-weight:700;margin-bottom:20px}
+.fg{margin-bottom:16px}.fl{font-size:13px;color:var(--mut);margin-bottom:6px;display:block}
+.fi{width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--bdr);border-radius:8px;color:var(--txt);font-size:14px;font-family:'Noto Sans KR',sans-serif;transition:border-color .2s}
+.fi:focus{outline:none;border-color:var(--ac)}textarea.fi{resize:vertical;min-height:80px}
+.m-acts{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;min-height:4px}
+.chip{padding:4px 12px;border-radius:99px;font-size:12px;background:var(--sur2);border:1px solid var(--bdr);color:var(--mut);cursor:pointer;transition:all .15s}
+.chip:hover{border-color:var(--ac);color:var(--ac)}
+/* 이미지 */
+.img-zone{width:100%;padding:22px 16px;background:var(--bg);border:2px dashed var(--bdr);border-radius:10px;cursor:pointer;text-align:center;font-size:13px;color:var(--mut);transition:all .2s;position:relative}
+.img-zone:hover,.img-zone.over{border-color:var(--ac);color:var(--ac);background:rgba(79,142,247,.05)}
+.img-zone .zi{font-size:28px;margin-bottom:6px}.img-zone .zt{font-weight:600;margin-bottom:4px}.img-zone .zs{font-size:11px;opacity:.65}
+.img-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.prev-wrap{position:relative;display:inline-block;margin-top:8px}
+.prev-img{max-height:150px;max-width:100%;border-radius:8px;border:1px solid var(--bdr);display:block}
+.prev-rm{position:absolute;top:-9px;right:-9px;background:var(--sur2);border:1px solid var(--bdr);color:#f87171;border-radius:50%;width:24px;height:24px;cursor:pointer;font-size:13px;line-height:24px;text-align:center;z-index:2}
+/* 퀴즈 */
+.ord-row{display:flex;gap:8px;margin-bottom:22px}
+.ord-btn{padding:7px 16px;border-radius:99px;font-size:13px;border:1px solid var(--bdr);background:var(--sur);color:var(--mut);cursor:pointer;transition:all .2s}
+.ord-btn.active{background:linear-gradient(135deg,var(--ac),var(--ac2));border-color:transparent;color:#fff}
+.qhdr{display:flex;align-items:center;gap:14px;margin-bottom:28px}.qprog{flex:1}
+.qprog-lbl{font-size:12px;color:var(--mut);margin-bottom:6px;display:flex;justify-content:space-between}
+.pbar{height:4px;background:var(--sur2);border-radius:99px;overflow:hidden}
+.pfill{height:100%;background:linear-gradient(90deg,var(--ac),var(--ac2));border-radius:99px;transition:width .4s}
+.qcard{background:var(--sur);border:1px solid var(--bdr);border-radius:20px;padding:32px;margin-bottom:22px;position:relative;overflow:hidden}
+.qcard::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--ac),var(--ac2))}
+.qnum{font-size:12px;color:var(--mut);margin-bottom:12px;font-family:'Space Mono',monospace}
+.qtxt{font-size:20px;font-weight:700;line-height:1.5;margin-bottom:18px}
+.qimg{max-width:100%;max-height:240px;border-radius:12px;margin-bottom:18px;border:1px solid var(--bdr);display:block;cursor:pointer}
+.ans-row{display:flex;gap:10px;align-items:flex-end}
+.ans-in{flex:1;padding:13px 18px;background:var(--bg);border:2px solid var(--bdr);border-radius:10px;color:var(--txt);font-size:16px;font-family:'Noto Sans KR',sans-serif;transition:border-color .2s}
+.ans-in:focus{outline:none;border-color:var(--ac)}.ans-in:disabled{opacity:.5}
+.sub-btn{padding:13px 24px;background:linear-gradient(135deg,var(--ac),var(--ac2));border:none;border-radius:10px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;font-family:'Noto Sans KR',sans-serif}
+.sub-btn:hover{filter:brightness(1.15)}.sub-btn:disabled{opacity:.4;cursor:not-allowed}
+/* 피드백 */
+.fb-ov{display:none;position:fixed;inset:0;z-index:500;align-items:center;justify-content:center;background:rgba(0,0,0,.65);backdrop-filter:blur(4px)}
+.fb-ov.show{display:flex}
+.fb-box{text-align:center;padding:44px 52px;border-radius:24px;border:2px solid;animation:pop .3s cubic-bezier(.34,1.56,.64,1);max-width:360px;width:90%}
+@keyframes pop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+.fb-box.ok{background:rgba(6,30,15,.97);border-color:var(--ok)}.fb-box.er{background:rgba(30,6,6,.97);border-color:var(--err)}
+.fb-icon{font-size:64px;margin-bottom:12px}.fb-lbl{font-size:28px;font-weight:900;margin-bottom:8px}
+.fb-box.ok .fb-lbl{color:var(--ok)}.fb-box.er .fb-lbl{color:var(--err)}
+.fb-ans{font-size:15px;color:var(--mut);margin-top:10px}.fb-ans strong{color:var(--txt);font-size:17px}
+.fb-timer{width:44px;height:44px;margin:18px auto 0;position:relative}
+.fb-timer svg{transform:rotate(-90deg)}.fb-timer circle{fill:none;stroke-width:3;stroke-linecap:round;stroke-dasharray:120}
+.bg-c{stroke:rgba(255,255,255,.1)}.fb-box.ok .fg-c{stroke:var(--ok)}.fb-box.er .fg-c{stroke:var(--err)}
+.fb-tnum{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-family:'Space Mono',monospace;font-weight:700}
+/* 점 네비 */
+.dot-nav{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px}
+.dn{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-family:'Space Mono',monospace;border:2px solid;cursor:pointer;transition:transform .15s;font-weight:700}
+.dn:hover{transform:scale(1.15)}.dn.pending{border-color:var(--mut);color:var(--mut);background:transparent}
+.dn.correct{border-color:var(--ok);color:var(--ok);background:rgba(34,197,94,.1)}.dn.wrong{border-color:var(--err);color:var(--err);background:rgba(239,68,68,.1)}
+.dn.cur{box-shadow:0 0 0 3px rgba(79,142,247,.5)}
+/* 결과 */
+.result{text-align:center;padding:40px 20px}.result .big{font-size:72px;margin-bottom:12px}
+.result .rtit{font-size:26px;font-weight:900;margin-bottom:8px}.result .rsub{color:var(--mut);margin-bottom:30px}
+.rstats{display:flex;justify-content:center;gap:24px;margin-bottom:36px}
+.rstat .n{font-size:36px;font-weight:900;font-family:'Space Mono',monospace}.rstat .l{font-size:12px;color:var(--mut);margin-top:2px}
+/* 이미지 확대 */
+.img-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:600;align-items:center;justify-content:center;padding:20px;cursor:pointer}
+.img-ov.open{display:flex}.img-ov img{max-width:100%;max-height:85vh;border-radius:12px;pointer-events:none}
+.img-ov-x{position:fixed;top:16px;right:20px;font-size:26px;color:#fff;cursor:pointer}
+/* 하단 탭 */
+.bnav{position:fixed;bottom:0;left:0;right:0;background:rgba(13,15,20,.93);backdrop-filter:blur(12px);border-top:1px solid var(--bdr);display:flex;justify-content:center}
+.bnav-in{width:100%;max-width:780px;display:flex}
+.ntab{flex:1;padding:12px 0 10px;background:none;border:none;color:var(--mut);cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:4px;transition:color .2s}
+.ntab .ni{font-size:20px}.ntab.active{color:var(--ac)}
+.empty{text-align:center;padding:60px 20px;color:var(--mut)}.empty .ei{font-size:48px;margin-bottom:12px}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:99px}
+
+/* ── 그리기 모달 ── */
+.draw-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:400;align-items:center;justify-content:center;padding:12px}
+.draw-ov.open{display:flex}
+.draw-modal{background:var(--sur);border:1px solid var(--bdr);border-radius:18px;display:flex;flex-direction:column;overflow:hidden;width:min(720px,100%);max-height:calc(100vh - 24px)}
+.dtb{display:flex;align-items:center;gap:5px;padding:9px 11px;background:var(--sur2);border-bottom:1px solid var(--bdr);flex-wrap:wrap}
+.tg{display:flex;align-items:center;gap:4px}
+.tsep{width:1px;height:24px;background:var(--bdr);margin:0 2px;flex-shrink:0}
+.tb{width:32px;height:32px;border-radius:7px;border:1px solid var(--bdr);background:var(--sur);color:var(--txt);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;padding:0}
+.tb:hover{background:var(--bdr)}.tb.on{background:var(--ac);border-color:var(--ac);color:#fff}.tb.era-on{background:#f97316;border-color:#f97316;color:#fff}
+.tb:disabled{opacity:.3;cursor:not-allowed}
+.tlbl{font-size:11px;color:var(--mut);font-family:'Space Mono',monospace;min-width:20px;text-align:center}
+input[type=range].tr{-webkit-appearance:none;width:72px;height:4px;background:var(--bdr);border-radius:99px;outline:none;cursor:pointer}
+input[type=range].tr::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--ac);cursor:pointer}
+.sw{width:22px;height:22px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:transform .15s;flex-shrink:0}
+.sw:hover{transform:scale(1.2)}.sw.sel{border-color:#fff;transform:scale(1.2)}
+input[type=color].tc{width:22px;height:22px;border:none;padding:0;border-radius:50%;cursor:pointer;background:none}
+.cwrap{position:relative;display:flex;align-items:center;justify-content:center;flex:1;overflow:hidden;background:#1a1c24;padding:8px;min-height:180px;touch-action:none;user-select:none}
+#draw-canvas{background:#fff;border-radius:3px;display:block;max-width:100%;max-height:100%;box-shadow:0 2px 16px rgba(0,0,0,.4);touch-action:none}
+#lasso-cv{position:absolute;top:0;left:0;pointer-events:none}
+/* 올가미 패널 */
+#lasso-panel{display:none;position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
+  background:var(--sur2);border:1px solid var(--bdr);border-radius:11px;padding:8px 12px;
+  align-items:center;gap:8px;flex-wrap:wrap;box-shadow:0 4px 20px rgba(0,0,0,.6);z-index:20;white-space:nowrap}
+#lasso-panel.show{display:flex}
+.lp-lbl{font-size:11px;color:var(--mut)}
+.lp-sw{width:18px;height:18px;border-radius:50%;cursor:pointer;border:2px solid transparent;flex-shrink:0;transition:transform .15s}
+.lp-sw:hover{transform:scale(1.2)}.lp-sw.sel{border-color:#fff}
+input[type=color].lp-col{width:18px;height:18px;border:none;padding:0;border-radius:50%;cursor:pointer;background:none}
+.lp-hint{font-size:10px;color:var(--mut);opacity:.8}
+.dfoot{display:flex;gap:8px;padding:9px 11px;border-top:1px solid var(--bdr);justify-content:space-between;align-items:center}
+.prev-edit{position:absolute;top:-9px;left:-9px;background:var(--sur2);border:1px solid var(--bdr);color:var(--ac);border-radius:50%;width:24px;height:24px;cursor:pointer;font-size:13px;line-height:24px;text-align:center;z-index:2}
+.crop-handle{position:absolute;width:12px;height:12px;background:#fff;border:2px solid #4f8ef7;border-radius:2px;z-index:10}
+.spen-ind{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--mut)}
+.spen-dot{width:8px;height:8px;border-radius:50%;background:var(--mut)}.spen-dot.era{background:#f97316}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="app-header"><span class="app-title">퀴즈 마스터</span></div>
+
+  <div id="screen-home" class="screen active">
+    <div class="home-stats">
+      <div class="stat-card"><div class="num ok-num" id="s-ok">0</div><div class="lbl">✅ 정답</div></div>
+      <div class="stat-card"><div class="num err-num" id="s-err">0</div><div class="lbl">❌ 오답</div></div>
+      <div class="stat-card"><div class="num pend-num" id="s-pend">0</div><div class="lbl">❓ 미풀이</div></div>
+    </div>
+    <div class="sec">카테고리 선택</div>
+    <div class="cat-grid" id="cat-grid"></div>
+    <div id="home-empty" class="empty" style="display:none"><div class="ei">📚</div><div>아직 문제가 없어요.<br>문제 관리 탭에서 추가해 보세요!</div></div>
+  </div>
+
+  <div id="screen-manage" class="screen">
+    <div class="toolbar">
+      <input type="text" id="filter-in" placeholder="🔍 검색…" oninput="renderList()">
+      <button class="btn btn-p" onclick="openAdd()">+ 추가</button>
+    </div>
+    <div id="q-list"></div>
+    <div id="manage-empty" class="empty" style="display:none"><div class="ei">✏️</div><div>문제를 추가해 보세요!</div></div>
+  </div>
+
+  <div id="screen-quiz" class="screen">
+    <div class="ord-row">
+      <button class="ord-btn active" id="ord-seq" onclick="setOrder('seq')">📋 순서대로</button>
+      <button class="ord-btn" id="ord-rnd" onclick="setOrder('rnd')">🔀 무작위</button>
+    </div>
+    <div class="qhdr">
+      <button class="btn btn-s" style="padding:8px 14px;font-size:13px" onclick="goHome()">← 홈</button>
+      <div class="qprog">
+        <div class="qprog-lbl"><span id="prog-lbl">0/0</span><span id="prog-cat"></span></div>
+        <div class="pbar"><div class="pfill" id="pfill" style="width:0%"></div></div>
+      </div>
+    </div>
+    <div class="dot-nav" id="dot-nav"></div>
+    <div id="quiz-area"></div>
+  </div>
+</div>
+
+<div class="bnav"><div class="bnav-in">
+  <button class="ntab active" id="tab-home" onclick="showScreen('home')"><span class="ni">🏠</span>홈</button>
+  <button class="ntab" id="tab-manage" onclick="showScreen('manage')"><span class="ni">📝</span>문제 관리</button>
+  <button class="ntab" id="tab-quiz" style="pointer-events:none;opacity:.4"><span class="ni">🎯</span>풀기</button>
+</div></div>
+
+<!-- 추가/수정 모달 -->
+<div class="overlay" id="modal">
+  <div class="modal">
+    <h3 id="modal-title">문제 추가</h3>
+    <div class="fg">
+      <label class="fl">카테고리 *</label>
+      <div class="chips" id="chips"></div>
+      <input class="fi" id="f-cat" placeholder="카테고리 직접 입력 또는 위에서 선택" autocomplete="off">
+    </div>
+    <div class="fg"><label class="fl">문제 *</label><textarea class="fi" id="f-q" placeholder="문제를 입력하세요"></textarea></div>
+    <div class="fg"><label class="fl">정답 *</label><input class="fi" id="f-a" placeholder="정답을 입력하세요"></div>
+    <div class="fg">
+      <label class="fl">이미지 첨부 (선택)</label>
+      <div id="img-input-area">
+        <div class="img-zone" id="img-zone">
+          <input type="file" id="f-img" accept="image/*">
+          <div class="zi">🖼️</div><div class="zt">클릭 · 드래그 앤 드롭 · Ctrl+V</div><div class="zs">JPG · PNG · GIF · WEBP</div>
+        </div>
+        <button class="btn btn-s" type="button" id="btn-draw" style="width:100%;margin-top:8px;padding:10px;font-size:13px">✏️ 직접 그리기</button>
+      </div>
+      <div class="prev-wrap" id="prev-wrap" style="display:none">
+        <img id="prev-img" class="prev-img" src="" alt="">
+        <button class="prev-rm" type="button" id="prev-rm" title="이미지 제거">✕</button>
+        <button class="prev-edit" type="button" id="prev-edit" title="편집">✏️</button>
+      </div>
+    </div>
+    <div class="m-acts">
+      <button class="btn btn-s" type="button" id="btn-cancel">취소</button>
+      <button class="btn btn-p" type="button" id="btn-save">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 그리기 모달 -->
+<div class="draw-ov" id="draw-ov">
+  <div class="draw-modal">
+    <!-- 툴바 -->
+    <div class="dtb">
+      <div class="tg">
+        <button class="tb on" id="tool-pen" title="펜">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        </button>
+        <button class="tb" id="tool-eraser" title="지우개">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>
+        </button>
+        <button class="tb" id="tool-lasso" title="올가미 선택">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c4.97 0 9-2.69 9-6s-4.03-6-9-6-9 2.69-9 6c0 1.8.97 3.41 2.54 4.54L5 22l4.5-1.5c.8.3 1.63.5 2.5.5z"/><path d="M12 10V3"/><path d="m9 6 3-3 3 3"/></svg>
+        </button>
+      </div>
+      <div class="tsep"></div>
+      <div class="tg">
+        <span style="font-size:11px;color:var(--mut)">굵기</span>
+        <input type="range" class="tr" id="bsize" min="1" max="60" value="11">
+        <span class="tlbl" id="blbl">11</span>
+      </div>
+      <div class="tsep"></div>
+      <div class="tg" id="swatches"></div>
+      <div class="tg"><input type="color" class="tc" id="custom-color" value="#000000" title="커스텀 색상"></div>
+      <div class="tsep"></div>
+      <div class="tg">
+        <button class="tb" id="btn-undo" title="실행취소 Ctrl+Z" disabled>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+        </button>
+        <button class="tb" id="btn-redo" title="다시하기 Ctrl+Y" disabled>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg>
+        </button>
+      </div>
+      <div class="tsep"></div>
+      <div class="tg">
+        <button class="tb" id="btn-clear" title="전체 지우기">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- 캔버스 영역 -->
+    <div class="cwrap" id="cwrap">
+      <canvas id="draw-canvas"></canvas>
+      <canvas id="lasso-cv"></canvas>
+      <!-- 올가미 패널 -->
+      <div id="lasso-panel">
+        <span class="lp-lbl">색상:</span>
+        <div id="lasso-swatches" style="display:flex;gap:3px"></div>
+        <input type="color" class="lp-col" id="lasso-color" value="#000000" title="커스텀 색상">
+        <div class="tsep" style="height:20px"></div>
+        <span class="lp-hint">드래그로 크기 조절</span>
+        <div class="tsep" style="height:20px"></div>
+        <button class="tb on" id="lasso-apply" style="width:auto;padding:0 10px;font-size:11px;height:26px">적용</button>
+        <button class="tb" id="lasso-delete" style="width:auto;padding:0 10px;font-size:11px;height:26px;background:#7f1d1d;border-color:#7f1d1d;color:#fca5a5">삭제</button>
+        <button class="tb" id="lasso-cancel" style="width:auto;padding:0 10px;font-size:11px;height:26px">취소</button>
+      </div>
+    </div>
+
+    <!-- 하단 -->
+    <div class="dfoot">
+      <div class="spen-ind"><div class="spen-dot" id="spen-dot"></div><span id="spen-lbl">S펜 대기 중</span></div>
+      <div style="display:flex;align-items:center;gap:5px;margin:0 auto">
+        <span style="font-size:11px;color:var(--mut)">캔버스</span>
+        <button class="tb" id="btn-sz-dn" style="width:26px;height:26px;font-size:15px;font-weight:700">−</button>
+        <span id="sz-lbl" style="font-size:11px;color:var(--mut);font-family:'Space Mono',monospace;min-width:58px;text-align:center">600×450</span>
+        <button class="tb" id="btn-sz-up" style="width:26px;height:26px;font-size:15px;font-weight:700">+</button>
+      </div>
+      <div style="display:flex;gap:7px">
+        <button class="btn btn-s" type="button" id="btn-draw-cancel">취소</button>
+        <button class="btn btn-p" type="button" id="btn-draw-ok">완료 ✓</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 크롭 모달 -->
+<div class="overlay" id="crop-modal" style="z-index:450">
+  <div class="modal" style="max-width:560px">
+    <h3>이미지 자르기</h3>
+    <div style="position:relative;display:inline-block;margin-top:12px;user-select:none;touch-action:none" id="crop-wrap">
+      <img id="crop-src-img" style="display:block;max-width:100%;max-height:55vh;border-radius:6px" src="" alt="">
+      <div id="crop-box" style="position:absolute;border:2px solid #4f8ef7;box-shadow:0 0 0 9999px rgba(0,0,0,.5);cursor:move;box-sizing:border-box"></div>
+      <div class="crop-handle" id="ch-tl" style="top:-5px;left:-5px;cursor:nwse-resize"></div>
+      <div class="crop-handle" id="ch-tr" style="top:-5px;right:-5px;cursor:nesw-resize"></div>
+      <div class="crop-handle" id="ch-bl" style="bottom:-5px;left:-5px;cursor:nesw-resize"></div>
+      <div class="crop-handle" id="ch-br" style="bottom:-5px;right:-5px;cursor:nwse-resize"></div>
+    </div>
+    <div class="m-acts" style="margin-top:16px">
+      <button class="btn btn-s" type="button" id="btn-crop-cancel">취소</button>
+      <button class="btn btn-p" type="button" id="btn-crop-ok">자르기 ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- 카테고리 컨텍스트 메뉴 -->
+<div class="overlay" id="cat-menu" style="z-index:200">
+  <div class="modal" style="max-width:320px;padding:20px">
+    <div style="font-size:13px;color:var(--mut);margin-bottom:14px">카테고리</div>
+    <div id="cat-menu-name" style="font-size:18px;font-weight:700;margin-bottom:20px;word-break:break-all"></div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button class="btn btn-s" type="button" id="cat-menu-rename" style="text-align:left;padding:12px 16px">✏️ 카테고리 이름 변경</button>
+      <button class="btn btn-d" type="button" id="cat-menu-delete" style="text-align:left;padding:12px 16px">🗑️ 카테고리 삭제 (문제 전체 삭제)</button>
+    </div>
+    <div class="m-acts" style="margin-top:16px">
+      <button class="btn btn-s" type="button" id="cat-menu-close">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 피드백 -->
+<div class="fb-ov" id="fb-ov">
+  <div class="fb-box" id="fb-box">
+    <div class="fb-icon" id="fb-icon"></div>
+    <div class="fb-lbl" id="fb-lbl"></div>
+    <div class="fb-ans" id="fb-ans"></div>
+    <div class="fb-timer">
+      <svg width="44" height="44" viewBox="0 0 44 44">
+        <circle class="bg-c" cx="22" cy="22" r="19"/>
+        <circle class="fg-c" id="fg-c" cx="22" cy="22" r="19"/>
+      </svg>
+      <div class="fb-tnum" id="fb-tnum">2</div>
+    </div>
+  </div>
+</div>
+<div class="img-ov" id="img-ov"><span class="img-ov-x">✕</span><img id="img-ov-img" src="" alt=""></div>
+
+<script>
+/* ══════ 데이터 ══════ */
+let qs=[];try{qs=JSON.parse(localStorage.getItem('qm3')||'[]');}catch(e){}
+let editId=null,imgData=null,imgIsDrawn=false,queue=[],qIdx=0,qCat='__ALL__',qOrd='seq',rafId=null;
+const save=()=>{try{localStorage.setItem('qm3',JSON.stringify(qs));}catch(e){}};
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const norm=s=>String(s).trim().toLowerCase().replace(/\s+/g,' ');
+
+/* ══════ 화면 ══════ */
+function showScreen(n){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+n).classList.add('active');
+  document.querySelectorAll('.ntab').forEach(t=>t.classList.remove('active'));
+  const t=document.getElementById('tab-'+n);if(t)t.classList.add('active');
+  if(n==='home')renderHome();if(n==='manage')renderList();
+}
+
+/* ══════ 홈 ══════ */
+function renderHome(){
+  document.getElementById('s-ok').textContent=qs.filter(q=>q.st==='correct').length;
+  document.getElementById('s-err').textContent=qs.filter(q=>q.st==='wrong').length;
+  document.getElementById('s-pend').textContent=qs.filter(q=>q.st==='pending').length;
+  const grid=document.getElementById('cat-grid'),empty=document.getElementById('home-empty');
+  grid.innerHTML='';
+  if(!qs.length){empty.style.display='';return;}empty.style.display='none';
+  const cats=[...new Set(qs.map(q=>q.cat))];
+  mkCard(grid,'__ALL__','전체 📚',qs,true);
+  if(cats.length){addSec(grid,'카테고리별');cats.forEach(c=>mkCard(grid,c,c,qs.filter(q=>q.cat===c),false));}
+  const grps=[['correct','✅ 정답'],['wrong','❌ 오답'],['pending','❓ 미풀이']];
+  if(grps.some(([s])=>qs.some(q=>q.st===s))){
+    addSec(grid,'상태별');
+    grps.forEach(([st,lbl])=>{const p=qs.filter(q=>q.st===st);if(p.length)mkCard(grid,'__st__'+st,lbl,p,false);});
+  }
+}
+function addSec(p,t){const d=document.createElement('div');d.className='sec';d.style.cssText='grid-column:1/-1;margin-top:4px;margin-bottom:0';d.textContent=t;p.appendChild(d);}
+function mkCard(p,key,lbl,pool,isAll){
+  const c=pool.filter(q=>q.st==='correct').length,w=pool.filter(q=>q.st==='wrong').length,pn=pool.filter(q=>q.st==='pending').length;
+  const card=document.createElement('div');card.className='cat-card'+(isAll?' all':'');
+  const cn=document.createElement('div');cn.className='cn';cn.textContent=lbl;
+  const cc=document.createElement('div');cc.className='cc';cc.textContent=pool.length+'문제';
+  const do_=document.createElement('div');do_.className='dots';
+  for(let i=0;i<Math.min(c,8);i++){const d=document.createElement('span');d.className='dot c';do_.appendChild(d);}
+  for(let i=0;i<Math.min(w,8);i++){const d=document.createElement('span');d.className='dot w';do_.appendChild(d);}
+  for(let i=0;i<Math.min(pn,8);i++){const d=document.createElement('span');d.className='dot p';do_.appendChild(d);}
+  card.append(cn,cc,do_);
+
+  // 짧게 클릭 → 퀴즈 시작, 길게 누르기 → 카테고리 메뉴 (일반 카테고리만)
+  let pressTimer=null;
+  let longPressed=false;
+  const startPress=()=>{
+    longPressed=false;
+    if(!isAll&&!key.startsWith('__st__')){
+      pressTimer=setTimeout(()=>{longPressed=true;openCatMenu(key);},500);
+    }
+  };
+  const endPress=(e)=>{
+    clearTimeout(pressTimer);
+    if(longPressed){e.preventDefault();return;}
+    startQuiz(key);
+  };
+  const cancelPress=()=>clearTimeout(pressTimer);
+
+  card.addEventListener('mousedown',startPress);
+  card.addEventListener('mouseup',endPress);
+  card.addEventListener('mouseleave',cancelPress);
+  card.addEventListener('touchstart',startPress,{passive:true});
+  card.addEventListener('touchend',endPress);
+  card.addEventListener('touchcancel',cancelPress);
+
+  p.appendChild(card);
+}
+
+/* ══════ 관리 ══════ */
+function renderList(){
+  const f=(document.getElementById('filter-in')?.value||'').toLowerCase();
+  const list=document.getElementById('q-list'),empty=document.getElementById('manage-empty');
+  let pool=qs;if(f)pool=pool.filter(q=>q.q.toLowerCase().includes(f)||q.a.toLowerCase().includes(f)||q.cat.toLowerCase().includes(f));
+  list.innerHTML='';if(!pool.length){empty.style.display='';return;}empty.style.display='none';
+  const ico={correct:'🔵',wrong:'🔴',pending:'⬜'};
+  pool.forEach(q=>{
+    const row=document.createElement('div');row.className='q-item';
+    const ic=document.createElement('div');ic.className='q-icon';ic.textContent=ico[q.st]||'⬜';
+    const bd=document.createElement('div');bd.className='q-body';
+    const qe=document.createElement('div');qe.className='q-q';qe.textContent=q.q;
+    const ae=document.createElement('div');ae.className='q-a';ae.textContent='정답: '+q.a;
+    const ce=document.createElement('span');ce.className='q-cat';ce.textContent=q.cat;
+    bd.append(qe,ae,ce);
+    const acts=document.createElement('div');acts.className='q-acts';
+    const eb=document.createElement('button');eb.className='btn btn-s';eb.style.cssText='padding:6px 12px;font-size:12px';eb.textContent='편집';
+    const db=document.createElement('button');db.className='btn btn-d';db.style.cssText='padding:6px 12px;font-size:12px';db.textContent='삭제';
+    eb.addEventListener('click',()=>openEdit(q.id));db.addEventListener('click',()=>delQ(q.id));
+    acts.append(eb,db);row.append(ic,bd);
+    if(q.img){const im=document.createElement('img');im.className='q-img';im.src=q.img;im.alt='';im.addEventListener('click',()=>openImgOv(q.img));row.appendChild(im);}
+    row.appendChild(acts);list.appendChild(row);
+  });
+}
+
+/* ══════ 모달 ══════ */
+function openAdd(){
+  editId=null;imgData=null;imgIsDrawn=false;
+  document.getElementById('modal-title').textContent='문제 추가';
+  document.getElementById('f-cat').value='';document.getElementById('f-q').value='';
+  document.getElementById('f-a').value='';document.getElementById('f-img').value='';
+  showZone(true);renderChips();
+  document.getElementById('modal').classList.add('open');
+  setTimeout(()=>document.getElementById('f-cat').focus(),80);
+}
+function openEdit(id){
+  const q=qs.find(x=>x.id===id);if(!q)return;
+  editId=id;imgData=q.img||null;imgIsDrawn=q.imgIsDrawn||false;
+  document.getElementById('modal-title').textContent='문제 편집';
+  document.getElementById('f-cat').value=q.cat;document.getElementById('f-q').value=q.q;
+  document.getElementById('f-a').value=q.a;document.getElementById('f-img').value='';
+  if(q.img){document.getElementById('prev-img').src=q.img;showZone(false);}else showZone(true);
+  renderChips();document.getElementById('modal').classList.add('open');
+}
+function closeModal(){document.getElementById('modal').classList.remove('open');}
+function showZone(show){
+  document.getElementById('img-input-area').style.display=show?'':'none';
+  document.getElementById('prev-wrap').style.display=show?'none':'';
+}
+function renderChips(){
+  const wrap=document.getElementById('chips');wrap.innerHTML='';
+  [...new Set(qs.map(q=>q.cat))].filter(Boolean).forEach(c=>{
+    const ch=document.createElement('span');ch.className='chip';ch.textContent=c;
+    ch.addEventListener('click',()=>{document.getElementById('f-cat').value=c;});
+    wrap.appendChild(ch);
+  });
+}
+function saveQ(){
+  const cat=document.getElementById('f-cat').value.trim();
+  const q=document.getElementById('f-q').value.trim();
+  const a=document.getElementById('f-a').value.trim();
+  if(!cat||!a){alert('카테고리와 정답은 필수입니다.');return;}
+  if(editId){const i=qs.findIndex(x=>x.id===editId);if(i>=0)qs[i]={...qs[i],cat,q,a,img:imgData,imgIsDrawn};}
+  else qs.push({id:uid(),cat,q,a,img:imgData||null,imgIsDrawn,st:'pending'});
+  save();closeModal();renderList();
+}
+function delQ(id){if(!confirm('정말 삭제할까요?'))return;qs=qs.filter(x=>x.id!==id);save();renderList();}
+document.getElementById('btn-cancel').addEventListener('click',closeModal);
+document.getElementById('btn-save').addEventListener('click',saveQ);
+
+/* ══════ 이미지 업로드 ══════ */
+(function(){
+  const zone=document.getElementById('img-zone'),fi=document.getElementById('f-img');
+  fi.addEventListener('change',()=>{if(fi.files&&fi.files[0])readFile(fi.files[0]);});
+  zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('over');});
+  zone.addEventListener('dragleave',()=>zone.classList.remove('over'));
+  zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('over');const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('image/'))readFile(f);});
+  document.addEventListener('paste',e=>{
+    if(!document.getElementById('modal').classList.contains('open'))return;
+    if(imgData)return;
+    const items=e.clipboardData&&e.clipboardData.items;if(!items)return;
+    for(let i=0;i<items.length;i++){if(items[i].type.startsWith('image/')){e.preventDefault();readFile(items[i].getAsFile());return;}}
+  });
+  document.getElementById('prev-rm').addEventListener('click',()=>{
+    imgData=null;imgIsDrawn=false;
+    document.getElementById('prev-img').src='';fi.value='';showZone(true);
+  });
+  document.getElementById('prev-edit').addEventListener('click',()=>{
+    if(imgIsDrawn){
+      // 그림이면 그림창 열어서 편집 (현재 그림 복원)
+      openDrawForEdit();
+    } else {
+      // 일반 이미지면 크롭 창
+      openCropModal(imgData);
+    }
+  });
+})();
+function readFile(f){const r=new FileReader();r.onload=e=>showPreview(e.target.result,false);r.readAsDataURL(f);}
+function showPreview(src,isDrawn=false){imgData=src;imgIsDrawn=isDrawn;document.getElementById('prev-img').src=src;showZone(false);}
+
+/* ══════════════════════════════════════
+   그리기 모달
+══════════════════════════════════════ */
+(function(){
+  const SWATCHES=['#000000','#ffffff','#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#8b5cf6','#ec4899','#6b7280'];
+  const LASSO_SW=['#000000','#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#8b5cf6','#ec4899'];
+
+  const cv   = document.getElementById('draw-canvas');
+  const ctx  = cv.getContext('2d');
+  const lcv  = document.getElementById('lasso-cv');
+  const lctx = lcv.getContext('2d');
+  const cwrap= document.getElementById('cwrap');
+
+  /* 상태 */
+  let userTool='pen', effTool='pen';
+  let bsize=11, color='#000000';  // 기본 펜 사이즈 11
+  let drawing=false, pts=[];
+  let undoStack=[], redoStack=[];
+  let sPenBtn=false;
+
+  /* 올가미 상태 */
+  let lPath=[];
+  let lActive=false;
+  let lSnap=null;        // 선택 직전 원본 (cancelLasso 복원용)
+  let lBaseSnap=null;    // 선택 영역이 흰색으로 지워진 배경 (이동/리사이즈 기반)
+  let lBounds=null;      // {x,y,w,h} 현재 표시 위치/크기
+  let lOrigW=0, lOrigH=0;
+  let lTmpCv=null;       // 원본 픽셀 캔버스
+  let lScale=1.0;
+  let lColor=null;
+  let lAnimRaf=null;
+  let lDash=0;
+  let lDragMode=null;
+  let lDragStart=null;
+  let lDragBounds0=null;
+  let lDragScale0=1;
+
+  /* ── 초기화 ── */
+  function initCv(w,h){cv.width=w;cv.height=h;fillW();undoStack=[];redoStack=[];saveState();}
+  function fillW(){ctx.fillStyle='#fff';ctx.fillRect(0,0,cv.width,cv.height);}
+  function saveState(){
+    undoStack.push(ctx.getImageData(0,0,cv.width,cv.height));
+    if(undoStack.length>60)undoStack.shift();
+    redoStack=[];syncUR();
+  }
+  function syncUR(){
+    document.getElementById('btn-undo').disabled=undoStack.length<=1;
+    document.getElementById('btn-redo').disabled=redoStack.length===0;
+  }
+
+  /* ── lasso canvas 크기/위치 동기 ── */
+  function syncLcv(){
+    const cr=cv.getBoundingClientRect();
+    const wr=cwrap.getBoundingClientRect();
+    lcv.width=Math.round(cr.width);
+    lcv.height=Math.round(cr.height);
+    lcv.style.width=cr.width+'px';
+    lcv.style.height=cr.height+'px';
+    lcv.style.left=(cr.left-wr.left)+'px';
+    lcv.style.top=(cr.top-wr.top)+'px';
+  }
+
+  /* ── 색상 팔레트 ── */
+  const swWrap=document.getElementById('swatches');
+  SWATCHES.forEach(c=>{
+    const sw=document.createElement('div');sw.className='sw'+(c===color?' sel':'');
+    sw.style.background=c;if(c==='#ffffff')sw.style.border='2px solid #555';
+    sw.addEventListener('click',()=>{
+      color=c;document.getElementById('custom-color').value=c;
+      setUT('pen');document.querySelectorAll('.sw').forEach(s=>s.classList.remove('sel'));sw.classList.add('sel');
+    });
+    swWrap.appendChild(sw);
+  });
+  document.getElementById('custom-color').addEventListener('input',e=>{
+    color=e.target.value;document.querySelectorAll('.sw').forEach(s=>s.classList.remove('sel'));setUT('pen');
+  });
+
+  /* ── 올가미 색상 팔레트 ── */
+  const lswWrap=document.getElementById('lasso-swatches');
+  LASSO_SW.forEach(c=>{
+    const sw=document.createElement('div');sw.className='lp-sw';
+    sw.style.background=c;if(c==='#ffffff')sw.style.border='2px solid #555';
+    sw.addEventListener('click',()=>{
+      lColor=c;document.getElementById('lasso-color').value=c;
+      document.querySelectorAll('.lp-sw').forEach(s=>s.classList.remove('sel'));sw.classList.add('sel');
+      renderLassoPreview();
+    });
+    lswWrap.appendChild(sw);
+  });
+  document.getElementById('lasso-color').addEventListener('input',e=>{
+    lColor=e.target.value;document.querySelectorAll('.lp-sw').forEach(s=>s.classList.remove('sel'));
+    renderLassoPreview();
+  });
+
+  /* ── 굵기 ── */
+  const bsR=document.getElementById('bsize'),bLbl=document.getElementById('blbl');
+  bsR.value=11; bLbl.textContent=11;  // 기본값 11 반영
+  bsR.addEventListener('input',()=>{bsize=+bsR.value;bLbl.textContent=bsize;});
+
+  /* ── 툴 전환 ── */
+  function setUT(t){userTool=t;if(!sPenBtn)applyET(t);}
+  function applyET(t){
+    effTool=t;
+    document.getElementById('tool-pen').classList.toggle('on',t==='pen');
+    document.getElementById('tool-pen').classList.remove('era-on');
+    document.getElementById('tool-eraser').classList.toggle('on',t==='eraser'&&!sPenBtn);
+    document.getElementById('tool-eraser').classList.toggle('era-on',t==='eraser'&&sPenBtn);
+    document.getElementById('tool-lasso').classList.toggle('on',t==='lasso');
+    cv.style.cursor=t==='lasso'?'crosshair':t==='eraser'?'cell':'crosshair';
+    const dot=document.getElementById('spen-dot'),lbl=document.getElementById('spen-lbl');
+    if(sPenBtn){dot.classList.add('era');lbl.textContent='S펜 버튼 → 지우개';}
+    else{dot.classList.remove('era');lbl.textContent='S펜 대기 중';}
+  }
+  document.getElementById('tool-pen').addEventListener('click',()=>{cancelLasso();setUT('pen');});
+  document.getElementById('tool-eraser').addEventListener('click',()=>{cancelLasso();setUT('eraser');});
+  document.getElementById('tool-lasso').addEventListener('click',()=>{cancelLasso();setUT('lasso');});
+
+  /* ── 좌표 변환 ── */
+  function getPos(clientX,clientY){
+    const r=cv.getBoundingClientRect();
+    return{x:(clientX-r.left)*(cv.width/r.width),y:(clientY-r.top)*(cv.height/r.height)};
+  }
+  function isStylus(e){return e.pointerType==='pen'||e.pointerType==='mouse';}
+
+  /* ── S펜 버튼 감지 ── */
+  function spenBtn(e){return !!(e.buttons&0b100110);}
+
+  /* ── Bezier 그리기 ── */
+  function flushPts(){
+    if(pts.length<2)return;
+    ctx.beginPath();
+    ctx.strokeStyle=effTool==='eraser'?'#fff':color;
+    ctx.lineWidth=effTool==='eraser'?bsize*2.5:bsize;
+    ctx.lineCap='round';ctx.lineJoin='round';
+    ctx.moveTo(pts[0].x,pts[0].y);
+    if(pts.length===2){ctx.lineTo(pts[1].x,pts[1].y);}
+    else{
+      for(let i=1;i<pts.length-1;i++){
+        const mx=(pts[i].x+pts[i+1].x)/2,my=(pts[i].y+pts[i+1].y)/2;
+        ctx.quadraticCurveTo(pts[i].x,pts[i].y,mx,my);
+      }
+      ctx.lineTo(pts[pts.length-1].x,pts[pts.length-1].y);
+    }
+    ctx.stroke();
+  }
+
+  /* ════════════════════════════════════
+     올가미 로직
+  ════════════════════════════════════ */
+
+  /* canvas 좌표 → lasso overlay 픽셀 좌표 */
+  function cv2lc(p){
+    const r=cv.getBoundingClientRect();
+    return{x:p.x*(r.width/cv.width), y:p.y*(r.height/cv.height)};
+  }
+
+  /* lBounds를 overlay canvas 좌표로 */
+  function boundsOnLcv(){
+    if(!lBounds)return null;
+    const r=cv.getBoundingClientRect();
+    const sx=r.width/cv.width, sy=r.height/cv.height;
+    return{x:lBounds.x*sx, y:lBounds.y*sy, w:lBounds.w*sx, h:lBounds.h*sy};
+  }
+
+  /* 선택 확정 후 점선 사각형 그리기 */
+  function drawLassoDash(){
+    lctx.clearRect(0,0,lcv.width,lcv.height);
+    if(!lActive||!lBounds)return;
+    const b=boundsOnLcv();
+    lctx.save();
+    lctx.fillStyle='rgba(79,142,247,0.08)';
+    lctx.fillRect(b.x,b.y,b.w,b.h);
+    lctx.setLineDash([7,4]);
+    lctx.lineDashOffset=-lDash;
+    lctx.strokeStyle='#4f8ef7';
+    lctx.lineWidth=2;
+    lctx.strokeRect(b.x,b.y,b.w,b.h);
+    lctx.setLineDash([]);
+    /* 모서리 핸들 */
+    lctx.fillStyle='#fff';lctx.strokeStyle='#4f8ef7';lctx.lineWidth=1.5;
+    const hw=6;
+    [[b.x,b.y],[b.x+b.w,b.y],[b.x,b.y+b.h],[b.x+b.w,b.y+b.h]].forEach(([hx,hy])=>{
+      lctx.beginPath();lctx.arc(hx,hy,hw,0,Math.PI*2);lctx.fill();lctx.stroke();
+    });
+    lctx.restore();
+  }
+
+  /* 드로잉 중 경로 표시 */
+  function drawLassoPath(){
+    lctx.clearRect(0,0,lcv.width,lcv.height);
+    if(lPath.length<2)return;
+    lctx.save();
+    lctx.beginPath();
+    const p0=cv2lc(lPath[0]);lctx.moveTo(p0.x,p0.y);
+    lPath.forEach(p=>{const lp=cv2lc(p);lctx.lineTo(lp.x,lp.y);});
+    lctx.setLineDash([6,4]);lctx.strokeStyle='#4f8ef7';lctx.lineWidth=1.5;lctx.stroke();
+    lctx.setLineDash([]);lctx.restore();
+  }
+
+  function animLasso(){lDash=(lDash+0.5)%22;drawLassoDash();lAnimRaf=requestAnimationFrame(animLasso);}
+
+  /* 선택 완료 */
+  function finalizeLasso(){
+    lPath.push({...lPath[0]});
+    const xs=lPath.map(p=>p.x),ys=lPath.map(p=>p.y);
+    const x1=Math.max(0,Math.floor(Math.min(...xs)));
+    const y1=Math.max(0,Math.floor(Math.min(...ys)));
+    const x2=Math.min(cv.width,Math.ceil(Math.max(...xs)));
+    const y2=Math.min(cv.height,Math.ceil(Math.max(...ys)));
+    if(x2-x1<4||y2-y1<4){cancelLasso();return;}
+    lOrigW=x2-x1;lOrigH=y2-y1;
+    lBounds={x:x1,y:y1,w:lOrigW,h:lOrigH};
+    // 원본 그림 픽셀 저장
+    lTmpCv=document.createElement('canvas');
+    lTmpCv.width=lOrigW;lTmpCv.height=lOrigH;
+    lTmpCv.getContext('2d').putImageData(ctx.getImageData(x1,y1,lOrigW,lOrigH),0,0);
+    // 배경 스냅샷: 선택 영역을 흰색으로 지운 상태
+    const bgSnap=ctx.getImageData(0,0,cv.width,cv.height);
+    const bgTmp=document.createElement('canvas');bgTmp.width=cv.width;bgTmp.height=cv.height;
+    const bc=bgTmp.getContext('2d');
+    bc.putImageData(bgSnap,0,0);
+    bc.fillStyle='#fff';bc.fillRect(x1,y1,lOrigW,lOrigH);
+    lBaseSnap=bc.getImageData(0,0,cv.width,cv.height);
+    lSnap=bgSnap; // cancelLasso 복원용
+    lScale=1.0;lColor=null;lActive=true;
+    syncLcv();
+    if(lAnimRaf)cancelAnimationFrame(lAnimRaf);
+    lDash=0;animLasso();
+    document.getElementById('lasso-panel').classList.add('show');
+  }
+
+  /* 미리보기 렌더 */
+  function renderLassoPreview(){
+    if(!lBaseSnap||!lBounds||!lTmpCv)return;
+    // lBaseSnap = 선택 영역이 흰색으로 지워진 배경
+    ctx.putImageData(lBaseSnap,0,0);
+    const{x,y,w,h}=lBounds;
+    const out=document.createElement('canvas');out.width=lOrigW;out.height=lOrigH;
+    const oc=out.getContext('2d');oc.drawImage(lTmpCv,0,0);
+    if(lColor){
+      const rr=parseInt(lColor.slice(1,3),16),gg=parseInt(lColor.slice(3,5),16),bb=parseInt(lColor.slice(5,7),16);
+      const id=oc.getImageData(0,0,lOrigW,lOrigH);
+      for(let i=0;i<id.data.length;i+=4){
+        if(id.data[i]<240||id.data[i+1]<240||id.data[i+2]<240){id.data[i]=rr;id.data[i+1]=gg;id.data[i+2]=bb;}
+      }
+      oc.putImageData(id,0,0);
+    }
+    ctx.drawImage(out,x,y,w,h);
+  }
+
+  /* 점 히트 테스트: 테두리 근처=resize, 내부=move */
+  const BHIT=16;
+  function lassoHitTest(p){
+    if(!lBounds)return null;
+    const{x,y,w,h}=lBounds;
+    const nearL=Math.abs(p.x-x)<BHIT&&p.y>=y-BHIT&&p.y<=y+h+BHIT;
+    const nearR=Math.abs(p.x-(x+w))<BHIT&&p.y>=y-BHIT&&p.y<=y+h+BHIT;
+    const nearT=Math.abs(p.y-y)<BHIT&&p.x>=x-BHIT&&p.x<=x+w+BHIT;
+    const nearB=Math.abs(p.y-(y+h))<BHIT&&p.x>=x-BHIT&&p.x<=x+w+BHIT;
+    if(nearL||nearR||nearT||nearB)return 'resize';
+    if(p.x>=x&&p.x<=x+w&&p.y>=y&&p.y<=y+h)return 'move';
+    return null;
+  }
+
+  function updateCursor(p){
+    if(!lActive){cv.style.cursor='crosshair';return;}
+    const h=lassoHitTest(p);
+    cv.style.cursor=h==='resize'?'nwse-resize':h==='move'?'move':'crosshair';
+  }
+
+  /* 올가미 취소 */
+  function cancelLasso(){
+    if(lSnap)ctx.putImageData(lSnap,0,0);
+    lActive=false;lPath=[];lBounds=null;lOrigW=0;lOrigH=0;
+    lSnap=null;lBaseSnap=null;lTmpCv=null;lScale=1.0;lColor=null;
+    lDragMode=null;lDragStart=null;lDragBounds0=null;
+    if(lAnimRaf){cancelAnimationFrame(lAnimRaf);lAnimRaf=null;}
+    lctx.clearRect(0,0,lcv.width,lcv.height);
+    document.getElementById('lasso-panel').classList.remove('show');
+    cv.style.cursor='crosshair';
+  }
+
+  /* 올가미 적용 */
+  document.getElementById('lasso-apply').addEventListener('click',()=>{
+    renderLassoPreview();saveState();
+    lActive=false;lPath=[];lBounds=null;lOrigW=0;lOrigH=0;
+    lSnap=null;lBaseSnap=null;lTmpCv=null;lScale=1.0;lColor=null;lDragMode=null;
+    if(lAnimRaf){cancelAnimationFrame(lAnimRaf);lAnimRaf=null;}
+    lctx.clearRect(0,0,lcv.width,lcv.height);
+    document.getElementById('lasso-panel').classList.remove('show');
+    cv.style.cursor='crosshair';
+  });
+  document.getElementById('lasso-cancel').addEventListener('click',cancelLasso);
+  document.getElementById('lasso-delete').addEventListener('click',()=>{
+    // 선택 영역을 흰색으로 지우고 확정
+    if(!lBaseSnap||!lBounds)return;
+    ctx.putImageData(lBaseSnap,0,0); // 배경 복원 (선택 영역 이미 없음)
+    saveState();
+    lActive=false;lPath=[];lBounds=null;lOrigW=0;lOrigH=0;
+    lSnap=null;lBaseSnap=null;lTmpCv=null;lScale=1.0;lColor=null;lDragMode=null;
+    if(lAnimRaf){cancelAnimationFrame(lAnimRaf);lAnimRaf=null;}
+    lctx.clearRect(0,0,lcv.width,lcv.height);
+    document.getElementById('lasso-panel').classList.remove('show');
+    cv.style.cursor='crosshair';
+  });
+
+  /* ════ Pointer 이벤트 ════ */
+  cv.addEventListener('pointerdown',e=>{
+    if(!isStylus(e)||!e.isPrimary)return;
+    e.preventDefault();
+    cv.setPointerCapture(e.pointerId);
+    const held=spenBtn(e);
+    if(held!==sPenBtn){sPenBtn=held;applyET(sPenBtn?'eraser':userTool);}
+    const p=getPos(e.clientX,e.clientY);
+
+    if(effTool==='lasso'){
+      if(lActive){
+        const hit=lassoHitTest(p);
+        if(hit){
+          lDragMode=hit;lDragStart=p;
+          lDragBounds0={...lBounds};lDragScale0=lScale;
+        } else {
+          // 범위 밖 클릭 → 올가미 해제
+          cancelLasso();
+        }
+        return;
+      }
+      lPath=[];lctx.clearRect(0,0,lcv.width,lcv.height);
+      lPath.push(p);drawing=true;
+      return;
+    }
+
+    drawing=true;pts=[];pts.push(p);
+    ctx.beginPath();ctx.arc(p.x,p.y,(effTool==='eraser'?bsize*2.5:bsize)/2,0,Math.PI*2);
+    ctx.fillStyle=effTool==='eraser'?'#fff':color;ctx.fill();
+  },{passive:false});
+
+  cv.addEventListener('pointermove',e=>{
+    if(!isStylus(e))return;
+    e.preventDefault();
+    const held=spenBtn(e);
+    if(held!==sPenBtn){sPenBtn=held;applyET(sPenBtn?'eraser':userTool);}
+    const p=getPos(e.clientX,e.clientY);
+
+    if(effTool==='lasso'){
+      if(lActive&&lDragMode&&lDragBounds0){
+        const dx=p.x-lDragStart.x, dy=p.y-lDragStart.y;
+        if(lDragMode==='move'){
+          lBounds={x:lDragBounds0.x+dx, y:lDragBounds0.y+dy, w:lDragBounds0.w, h:lDragBounds0.h};
+          renderLassoPreview();drawLassoDash();
+        } else {
+          /* resize: 중심 고정, 드래그 거리 비율로 스케일 */
+          const cx0=lDragBounds0.x+lDragBounds0.w/2, cy0=lDragBounds0.y+lDragBounds0.h/2;
+          const d0=Math.hypot(lDragStart.x-cx0, lDragStart.y-cy0);
+          const d1=Math.hypot(p.x-cx0, p.y-cy0);
+          if(d0>3){
+            const ns=Math.max(0.05,Math.min(8,lDragScale0*(d1/d0)));
+            lScale=ns;
+            const nw=Math.round(lOrigW*ns), nh=Math.round(lOrigH*ns);
+            lBounds={x:Math.round(cx0-nw/2), y:Math.round(cy0-nh/2), w:nw, h:nh};
+            renderLassoPreview();drawLassoDash();
+          }
+        }
+        return;
+      }
+      if(lActive)updateCursor(p);
+      if(drawing){lPath.push(p);drawLassoPath();}
+      return;
+    }
+
+    if(!drawing)return;
+    pts.push(p);if(pts.length>4)pts.shift();flushPts();
+  },{passive:false});
+
+  cv.addEventListener('pointerup',e=>{
+    const held=spenBtn(e);
+    if(!held&&sPenBtn){sPenBtn=false;applyET(userTool);}
+
+    if(effTool==='lasso'){
+      if(lDragMode){
+        lDragMode=null;lDragStart=null;lDragBounds0=null;
+        return;
+      }
+      if(drawing){
+        drawing=false;
+        if(lPath.length>3)finalizeLasso();
+        else{lPath=[];lctx.clearRect(0,0,lcv.width,lcv.height);}
+      }
+      return;
+    }
+    if(!drawing)return;
+    drawing=false;pts=[];saveState();
+  },{passive:false});
+
+  cv.addEventListener('pointercancel',()=>{
+    drawing=false;pts=[];lDragMode=null;
+    if(sPenBtn){sPenBtn=false;applyET(userTool);}
+  });
+
+  /* ════ 실행취소/다시하기 ════ */
+  document.getElementById('btn-undo').addEventListener('click',()=>{
+    if(undoStack.length<=1)return;
+    redoStack.push(undoStack.pop());
+    const s=undoStack[undoStack.length-1];cv.width=s.width;cv.height=s.height;ctx.putImageData(s,0,0);syncUR();
+  });
+  document.getElementById('btn-redo').addEventListener('click',()=>{
+    if(!redoStack.length)return;
+    const s=redoStack.pop();undoStack.push(s);cv.width=s.width;cv.height=s.height;ctx.putImageData(s,0,0);syncUR();
+  });
+  document.addEventListener('keydown',e=>{
+    if(!document.getElementById('draw-ov').classList.contains('open'))return;
+    if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();document.getElementById('btn-undo').click();}
+    if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.shiftKey&&e.key==='Z'))){e.preventDefault();document.getElementById('btn-redo').click();}
+  });
+
+  /* ════ 전체 지우기 ════ */
+  document.getElementById('btn-clear').addEventListener('click',()=>{cancelLasso();fillW();saveState();});
+
+  /* ════ 캔버스 크기 ════ */
+  const SIZES=[{w:300,h:225},{w:450,h:338},{w:600,h:450},{w:800,h:600},{w:1000,h:750}];
+  let szIdx=2;
+  function updSzLbl(){
+    const s=SIZES[szIdx];document.getElementById('sz-lbl').textContent=s.w+'×'+s.h;
+    document.getElementById('btn-sz-dn').disabled=szIdx===0;
+    document.getElementById('btn-sz-up').disabled=szIdx===SIZES.length-1;
+  }
+  function resizeCv(ni){
+    const to=SIZES[ni];
+    const snap=ctx.getImageData(0,0,cv.width,cv.height);
+    const tmp=document.createElement('canvas');tmp.width=cv.width;tmp.height=cv.height;
+    tmp.getContext('2d').putImageData(snap,0,0);
+    cv.width=to.w;cv.height=to.h;fillW();ctx.drawImage(tmp,0,0,to.w,to.h);
+    szIdx=ni;updSzLbl();undoStack=[];redoStack=[];saveState();
+    requestAnimationFrame(syncLcv);
+  }
+  document.getElementById('btn-sz-dn').addEventListener('click',()=>{if(szIdx>0)resizeCv(szIdx-1);});
+  document.getElementById('btn-sz-up').addEventListener('click',()=>{if(szIdx<SIZES.length-1)resizeCv(szIdx+1);});
+
+  /* ════ 모달 열기/닫기 ════ */
+  function openDrawFresh(){
+    // 항상 새 캔버스로 시작
+    cancelLasso();
+    initCv(600,450);
+    szIdx=2;
+    bsize=11;bsR.value=11;bLbl.textContent=11;
+    setUT('pen');syncUR();updSzLbl();
+    document.getElementById('draw-ov').classList.add('open');
+    requestAnimationFrame(syncLcv);
+  }
+
+  function openDrawForEdit(){
+    // 기존 그림(base64)을 캔버스에 복원해서 편집
+    cancelLasso();
+    const img=new Image();
+    img.onload=()=>{
+      initCv(img.naturalWidth||600, img.naturalHeight||450);
+      ctx.drawImage(img,0,0);
+      undoStack=[];saveState();
+      szIdx=SIZES.reduce((best,s,i)=>Math.abs(s.w-img.naturalWidth)<Math.abs(SIZES[best].w-img.naturalWidth)?i:best,2);
+      bsize=11;bsR.value=11;bLbl.textContent=11;
+      setUT('pen');syncUR();updSzLbl();
+      document.getElementById('draw-ov').classList.add('open');
+      requestAnimationFrame(syncLcv);
+    };
+    img.src=imgData;
+  }
+  // 외부에서 호출 가능하게 전역 등록
+  window.openDrawForEdit=openDrawForEdit;
+
+  document.getElementById('btn-draw').addEventListener('click',openDrawFresh);
+
+  document.getElementById('btn-draw-cancel').addEventListener('click',()=>{
+    cancelLasso();
+    initCv(600,450); // 취소해도 리셋
+    document.getElementById('draw-ov').classList.remove('open');
+  });
+  document.getElementById('btn-draw-ok').addEventListener('click',()=>{
+    const d=ctx.getImageData(0,0,cv.width,cv.height).data;
+    let blank=true;
+    for(let i=0;i<d.length;i+=4){if(d[i]<250||d[i+1]<250||d[i+2]<250){blank=false;break;}}
+    if(blank){alert('그림을 먼저 그려주세요.');return;}
+    const src=cv.toDataURL('image/png');
+    showPreview(src,true);  // isDrawn=true
+    cancelLasso();
+    initCv(600,450); // 완료 후 리셋
+    document.getElementById('draw-ov').classList.remove('open');
+  });
+})();
+
+/* ══════ 크롭 모달 ══════ */
+(function(){
+  let cropImg=null, dispW=0, dispH=0, natW=0, natH=0;
+  let box={x:20,y:20,w:0,h:0};
+  let dragMode=null; // 'move' | 'tl'|'tr'|'bl'|'br'
+  let dragStart=null, boxStart=null;
+
+  const modal=document.getElementById('crop-modal');
+  const wrap=document.getElementById('crop-wrap');
+  const img=document.getElementById('crop-src-img');
+  const cropBox=document.getElementById('crop-box');
+
+  function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
+
+  function setBox(b){
+    box.x=clamp(b.x,0,dispW-20);
+    box.y=clamp(b.y,0,dispH-20);
+    box.w=clamp(b.w,20,dispW-box.x);
+    box.h=clamp(b.h,20,dispH-box.y);
+    renderBox();
+  }
+
+  function renderBox(){
+    cropBox.style.left=box.x+'px';
+    cropBox.style.top=box.y+'px';
+    cropBox.style.width=box.w+'px';
+    cropBox.style.height=box.h+'px';
+    // 핸들 위치
+    posHandle('ch-tl',box.x-5,box.y-5);
+    posHandle('ch-tr',box.x+box.w-7,box.y-5);
+    posHandle('ch-bl',box.x-5,box.y+box.h-7);
+    posHandle('ch-br',box.x+box.w-7,box.y+box.h-7);
+  }
+  function posHandle(id,x,y){
+    const h=document.getElementById(id);
+    h.style.position='absolute';h.style.left=x+'px';h.style.top=y+'px';
+  }
+
+  function getWrapPos(e){
+    const r=wrap.getBoundingClientRect();
+    const src=e.touches?e.touches[0]:e;
+    return{x:src.clientX-r.left, y:src.clientY-r.top};
+  }
+
+  function hitTest(p){
+    const hw=10;
+    if(Math.abs(p.x-box.x)<hw&&Math.abs(p.y-box.y)<hw)return 'tl';
+    if(Math.abs(p.x-(box.x+box.w))<hw&&Math.abs(p.y-box.y)<hw)return 'tr';
+    if(Math.abs(p.x-box.x)<hw&&Math.abs(p.y-(box.y+box.h))<hw)return 'bl';
+    if(Math.abs(p.x-(box.x+box.w))<hw&&Math.abs(p.y-(box.y+box.h))<hw)return 'br';
+    if(p.x>box.x&&p.x<box.x+box.w&&p.y>box.y&&p.y<box.y+box.h)return 'move';
+    return null;
+  }
+
+  wrap.addEventListener('pointerdown',e=>{
+    e.preventDefault();wrap.setPointerCapture(e.pointerId);
+    const p=getWrapPos(e);dragMode=hitTest(p);
+    dragStart=p;boxStart={...box};
+  },{passive:false});
+  wrap.addEventListener('pointermove',e=>{
+    if(!dragMode)return;e.preventDefault();
+    const p=getWrapPos(e),dx=p.x-dragStart.x,dy=p.y-dragStart.y;
+    const b={...boxStart};
+    if(dragMode==='move'){b.x+=dx;b.y+=dy;}
+    else if(dragMode==='tl'){b.x+=dx;b.y+=dy;b.w-=dx;b.h-=dy;}
+    else if(dragMode==='tr'){b.y+=dy;b.w+=dx;b.h-=dy;}
+    else if(dragMode==='bl'){b.x+=dx;b.w-=dx;b.h+=dy;}
+    else if(dragMode==='br'){b.w+=dx;b.h+=dy;}
+    setBox(b);
+  },{passive:false});
+  wrap.addEventListener('pointerup',()=>dragMode=null);
+
+  window.openCropModal=function(src){
+    cropImg=new Image();
+    cropImg.onload=()=>{
+      natW=cropImg.naturalWidth;natH=cropImg.naturalHeight;
+      img.src=src;
+      // 크기 확정 후 box 초기화
+      requestAnimationFrame(()=>{
+        dispW=img.offsetWidth;dispH=img.offsetHeight;
+        box={x:0,y:0,w:dispW,h:dispH};
+        renderBox();
+        modal.classList.add('open');
+      });
+    };
+    cropImg.src=src;
+  };
+
+  document.getElementById('btn-crop-cancel').addEventListener('click',()=>{
+    modal.classList.remove('open');
+  });
+  document.getElementById('btn-crop-ok').addEventListener('click',()=>{
+    if(!cropImg)return;
+    dispW=img.offsetWidth;dispH=img.offsetHeight;
+    const sx=natW/dispW, sy=natH/dispH;
+    const nx=Math.round(box.x*sx), ny=Math.round(box.y*sy);
+    const nw=Math.round(box.w*sx), nh=Math.round(box.h*sy);
+    const tmp=document.createElement('canvas');
+    tmp.width=Math.max(1,nw);tmp.height=Math.max(1,nh);
+    tmp.getContext('2d').drawImage(cropImg,nx,ny,nw,nh,0,0,nw,nh);
+    showPreview(tmp.toDataURL('image/png'),false);
+    modal.classList.remove('open');
+  });
+})();
+
+/* ══════ 카테고리 메뉴 ══════ */
+let catMenuKey=null;
+function openCatMenu(key){
+  catMenuKey=key;
+  document.getElementById('cat-menu-name').textContent=key;
+  document.getElementById('cat-menu').classList.add('open');
+}
+document.getElementById('cat-menu-close').addEventListener('click',()=>{
+  document.getElementById('cat-menu').classList.remove('open');
+});
+document.getElementById('cat-menu-rename').addEventListener('click',()=>{
+  const newName=prompt('새 카테고리 이름을 입력하세요:',catMenuKey);
+  if(!newName||!newName.trim()||newName.trim()===catMenuKey){
+    document.getElementById('cat-menu').classList.remove('open');return;
+  }
+  const n=newName.trim();
+  qs.forEach(q=>{if(q.cat===catMenuKey)q.cat=n;});
+  save();
+  document.getElementById('cat-menu').classList.remove('open');
+  renderHome();
+});
+document.getElementById('cat-menu-delete').addEventListener('click',()=>{
+  const count=qs.filter(q=>q.cat===catMenuKey).length;
+  if(!confirm(`"${catMenuKey}" 카테고리의 문제 ${count}개를 모두 삭제할까요?`)){return;}
+  qs=qs.filter(q=>q.cat!==catMenuKey);
+  save();
+  document.getElementById('cat-menu').classList.remove('open');
+  renderHome();
+});
+
+/* ══════ 퀴즈 ══════ */
+function startQuiz(key){
+  qCat=key;let pool;
+  if(key==='__ALL__')pool=[...qs];
+  else if(key.startsWith('__st__'))pool=qs.filter(q=>q.st===key.replace('__st__',''));
+  else pool=qs.filter(q=>q.cat===key);
+  if(!pool.length){alert('이 카테고리에 문제가 없습니다.');return;}
+  queue=[...pool];if(qOrd==='rnd')shuffle(queue);qIdx=0;
+  const qt=document.getElementById('tab-quiz');qt.style.pointerEvents='';qt.style.opacity='';
+  showScreen('quiz');drawQ();drawDots();
+}
+function setOrder(ord){
+  qOrd=ord;
+  document.getElementById('ord-seq').classList.toggle('active',ord==='seq');
+  document.getElementById('ord-rnd').classList.toggle('active',ord==='rnd');
+  if(!queue.length)return;
+  const ids=queue.map(q=>q.id);
+  queue=ord==='rnd'?(shuffle(queue.slice(0)),queue):qs.filter(q=>ids.includes(q.id));
+  qIdx=0;drawQ();drawDots();
+}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function drawQ(){
+  if(qIdx>=queue.length){showResult();return;}
+  const q=queue[qIdx],total=queue.length;
+  document.getElementById('prog-lbl').textContent=`${qIdx+1} / ${total}`;
+  document.getElementById('pfill').style.width=`${(qIdx/total)*100}%`;
+  document.getElementById('prog-cat').textContent=qCat==='__ALL__'?'전체':qCat.startsWith('__st__')?'':qCat;
+  const area=document.getElementById('quiz-area');area.innerHTML='';
+  const card=document.createElement('div');card.className='qcard';
+  const num=document.createElement('div');num.className='qnum';num.textContent=`Q${qIdx+1} · ${q.cat}`;
+  const txt=document.createElement('div');txt.className='qtxt';txt.textContent=q.q;
+  card.append(num,txt);
+  if(q.img){const im=document.createElement('img');im.className='qimg';im.src=q.img;im.alt='';im.addEventListener('click',()=>openImgOv(q.img));card.appendChild(im);}
+  area.appendChild(card);
+  const row=document.createElement('div');row.className='ans-row';
+  const inp=document.createElement('input');
+  inp.className='ans-in';inp.type='text';inp.placeholder='정답을 입력하세요…';inp.autocomplete='off';
+  const btn=document.createElement('button');btn.className='sub-btn';btn.textContent='제출 ↵';
+  const submit=()=>{
+    if(inp.disabled)return;const ans=inp.value.trim();if(!ans)return;
+    inp.disabled=true;btn.disabled=true;
+    const ok=norm(ans)===norm(q.a);
+    const orig=qs.find(x=>x.id===q.id);if(orig)orig.st=ok?'correct':'wrong';
+    queue[qIdx].st=ok?'correct':'wrong';save();drawDots();
+    showFB(ok,q.a,()=>{qIdx++;drawQ();drawDots();});
+  };
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter')submit();});
+  btn.addEventListener('click',submit);
+  row.append(inp,btn);area.appendChild(row);
+  setTimeout(()=>inp.focus(),80);
+}
+function drawDots(){
+  const nav=document.getElementById('dot-nav');nav.innerHTML='';
+  queue.forEach((q,i)=>{
+    const d=document.createElement('div');d.className=`dn ${q.st} ${i===qIdx?'cur':''}`;
+    d.textContent=q.st==='correct'?'○':q.st==='wrong'?'✕':'?';d.title=q.q;
+    d.addEventListener('click',()=>{qIdx=i;drawQ();drawDots();});nav.appendChild(d);
+  });
+}
+function showFB(ok,ans,cb){
+  const DUR=ok?2000:5000,CIRC=2*Math.PI*19;
+  const box=document.getElementById('fb-box'),circ=document.getElementById('fg-c'),tnum=document.getElementById('fb-tnum');
+  box.className='fb-box '+(ok?'ok':'er');
+  document.getElementById('fb-icon').textContent=ok?'🎉':'😓';
+  document.getElementById('fb-lbl').textContent=ok?'정답!':'오답';
+  const ad=document.getElementById('fb-ans');
+  if(ok){ad.innerHTML='';}else{ad.innerHTML='정답: <strong></strong>';ad.querySelector('strong').textContent=ans;}
+  circ.style.strokeDasharray=CIRC;circ.style.strokeDashoffset=0;tnum.textContent=ok?'2':'5';
+  document.getElementById('fb-ov').classList.add('show');
+  if(rafId)cancelAnimationFrame(rafId);
+  let t0=null;
+  const tick=ts=>{if(!t0)t0=ts;const el=ts-t0,fr=Math.min(el/DUR,1);circ.style.strokeDashoffset=CIRC*fr;tnum.textContent=Math.ceil((DUR-el)/1000)||'…';if(fr<1)rafId=requestAnimationFrame(tick);else{document.getElementById('fb-ov').classList.remove('show');cb();}};
+  rafId=requestAnimationFrame(tick);
+}
+function showResult(){
+  const c=queue.filter(q=>q.st==='correct').length,w=queue.filter(q=>q.st==='wrong').length,total=queue.length,pct=Math.round(c/total*100);
+  const area=document.getElementById('quiz-area');area.innerHTML='';
+  const div=document.createElement('div');div.className='result';
+  div.innerHTML=`<div class="big">${pct>=80?'🏆':pct>=50?'👍':'💪'}</div><div class="rtit">세션 완료!</div><div class="rsub">${total}문제 중 ${c}문제 정답 (${pct}%)</div>
+    <div class="rstats"><div class="rstat"><div class="n" style="color:var(--ok)">${c}</div><div class="l">정답</div></div><div class="rstat"><div class="n" style="color:var(--err)">${w}</div><div class="l">오답</div></div></div>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap"><button class="btn btn-p" id="btn-retry">🔄 다시 풀기</button><button class="btn btn-s" id="btn-home2">🏠 홈으로</button></div>`;
+  area.appendChild(div);
+  div.querySelector('#btn-retry').addEventListener('click',()=>startQuiz(qCat));
+  div.querySelector('#btn-home2').addEventListener('click',goHome);
+}
+function goHome(){showScreen('home');}
+function openImgOv(src){document.getElementById('img-ov-img').src=src;document.getElementById('img-ov').classList.add('open');}
+document.getElementById('img-ov').addEventListener('click',()=>document.getElementById('img-ov').classList.remove('open'));
+renderHome();
+</script>
+</body>
+</html>
